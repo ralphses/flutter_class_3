@@ -4,10 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:modernlogintute/components/my_button.dart';
 import 'package:modernlogintute/components/my_textfield.dart';
 import 'package:modernlogintute/components/square_tile.dart';
+import 'package:modernlogintute/model/student.dart';
+import 'package:modernlogintute/model/studentActivity.dart';
+import 'package:modernlogintute/model/userProfile.dart';
 import 'package:modernlogintute/pages/dashboard_page.dart';
 import 'package:modernlogintute/pages/signup_page.dart';
 import 'package:http/http.dart' as http;
-
 
 class LoginPage extends StatelessWidget {
   LoginPage({super.key});
@@ -16,7 +18,7 @@ class LoginPage extends StatelessWidget {
   final usernameController = TextEditingController();
   final passwordController = TextEditingController();
 
-Future<void> signUserIn(BuildContext context) async {
+  Future<void> signUserIn(BuildContext context) async {
     final String username = usernameController.text;
     final String password = passwordController.text;
 
@@ -32,17 +34,46 @@ Future<void> signUserIn(BuildContext context) async {
       );
 
       if (response.statusCode == 200) {
+        Map<String, dynamic> resobj = jsonDecode(response.body);
+
+        List<StudentActivity> activities = List.empty(growable: true);
+
+        var list = resobj['activities'] as List;
+
+        for (int i = 0; i < list.length; i++) {
+          StudentActivity activity = StudentActivity(
+              type: list[i]['type'],
+              timestamp: list[i]['timestamp'],
+              title: list[i]['title']);
+          activities.add(activity);
+        }
+
+        print(resobj['student']['email']);
+
+        Student student = Student(
+            email: resobj['student']['email'],
+            fullName: resobj['student']['fullName'],
+            phone: resobj['student']['phone'],
+            username: resobj['student']['username']);
+
+        UserProfile profile =
+            UserProfile(student: student, activities: activities);
+        print(resobj);
+
+        print(student.email);
+        print(activities);
+
         // Login successful
         // Navigate to the dashboard page
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => DashboardPage(username: username)),
+          MaterialPageRoute(
+              builder: (context) => DashboardPage(profile: profile)),
         );
       } else {
         // Login failed
         // Optionally, you can handle the failure scenario, e.g., show an error message
         print('Login failed');
-      
       }
     } catch (e) {
       // Handle exceptions, if any
@@ -119,7 +150,7 @@ Future<void> signUserIn(BuildContext context) async {
 
                 // sign in button
                 MyButton(
-                 onTap: () => signUserIn(context),
+                  onTap: () => signUserIn(context),
                   text: "Sign In",
                 ),
 
